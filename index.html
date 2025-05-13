@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salman GPT</title>
+  <style>
+    :root {
+      --bg-color: #f5f7fa;
+      --text-color: #000;
+      --user-msg-bg: #d1e7ff;
+      --bot-msg-bg: #e2e3e5;
+      --header-bg: #0d6efd;
+      --sidebar-bg: #1f1f1f;
+      --sidebar-text: #fff;
+      --sidebar-close-color: #ff0000;
+    }
+
+    body.dark-mode {
+      --bg-color: #121212;
+      --text-color: #f5f5f5;
+      --user-msg-bg: #0056b3;
+      --bot-msg-bg: #343a40;
+      --header-bg: #0d6efd;
+      --sidebar-bg: #1f1f1f;
+      --sidebar-text: #fff;
+      --sidebar-close-color: #ff0000;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s ease;
+    }
+
+    .sidebar {
+      width: 200px;
+      background-color: var(--sidebar-bg);
+      padding: 15px;
+      color: var(--sidebar-text);
+      display: flex;
+      flex-direction: column;
+      transition: 0.3s ease;
+    }
+
+    .sidebar.hide {
+      display: none !important;
+    }
+
+    .sidebar h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    .sidebar button {
+      background-color: transparent;
+      border: 1px solid #444;
+      color: var(--sidebar-text);
+      padding: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .sidebar button.close-btn {
+      color: var(--sidebar-close-color);
+      margin-top: 20px;
+    }
+
+    .chat-history {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    .chat-history div {
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+
+    .container {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    h1 {
+      margin: 0;
+      padding: 20px;
+      background: var(--header-bg);
+      color: white;
+      text-align: center;
+    }
+
+    .chat-window {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      max-width: 80%;
+      margin: 10px;
+      padding: 12px 16px;
+      border-radius: 18px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--user-msg-bg);
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      background: var(--bot-msg-bg);
+    }
+
+    .input-area {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+      align-items: center;
+    }
+
+    #userInput {
+      flex-grow: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+
+    .icon-button {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-color);
+    }
+
+    .sidebar-toggle-btn {
+      position: absolute;
+      top: 10px;
+      left: 165px;
+      z-index: 1000;
+      font-size: 22px;
+      background: var(--header-bg);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    #status {
+      text-align: center;
+      font-style: italic;
+      font-size: 14px;
+      color: gray;
+      margin: 5px;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar-toggle-btn {
+        left: 10px;
+        top: 10px;
+        font-size: 20px;
+        padding: 6px 8px;
+      }
+
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        display: none;
+      }
+
+      .sidebar.show {
+        display: flex;
+      }
+
+      .input-area {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="sidebar-toggle-btn" onclick="toggleSidebar()">📂</button>
+
+  <div class="sidebar" id="sidebar">
+    <h2>Chats</h2>
+    <button onclick="newChat()">➕ New Chat</button>
+    <div class="chat-history" id="chatHistory"></div>
+    <button onclick="toggleDarkMode()">🌓 Toggle Dark Mode</button>
+    <button class="close-btn" onclick="toggleSidebar()">❌ Close</button>
+  </div>
+
+  <div class="container">
+    <h1>Salman GPT</h1>
+    <div class="chat-window" id="chatWindow"></div>
+    <p id="status"></p> <!-- 👈 Typing/Listening status -->
+    <div class="input-area">
+      <input type="text" id="userInput" placeholder="Type your message...">
+      <button class="icon-button" id="sendBtn">📤</button>
+      <button class="icon-button" id="micBtn">🎤</button>
+    </div>
+  </div>
+
+  <script>
+    const userInput = document.getElementById("userInput");
+    const chatWindow = document.getElementById("chatWindow");
+    const chatHistory = document.getElementById("chatHistory");
+    const sidebar = document.getElementById("sidebar");
+    const statusText = document.getElementById("status");
+
+    let currentChat = [];
+    let chatTitles = [];
+
+    function addMessage(content, sender) {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("message", sender);
+      msgDiv.innerText = content;
+      chatWindow.appendChild(msgDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function sendMessage(message) {
+      if (!message.trim()) return;
+      addMessage(message, "user");
+      currentChat.push({ sender: 'user', text: message });
+      userInput.value = "";
+      statusText.textContent = "Typing...";
+
+      fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: message })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const reply = data.response || "Error!";
+        addMessage("Salman GPT: " + reply, "bot");
+        currentChat.push({ sender: 'bot', text: reply });
+        // speak(reply); // voice output disabled per your request
+      })
+      .finally(() => {
+        statusText.textContent = "";
+      });
+    }
+
+    document.getElementById("sendBtn").addEventListener("click", () => {
+      sendMessage(userInput.value);
+    });
+
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage(userInput.value);
+    });
+
+    document.getElementById("micBtn").addEventListener("click", () => {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = "en-US";
+      statusText.textContent = "Listening...";
+      recognition.start();
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        statusText.textContent = "";
+        sendMessage(transcript);
+      };
+
+      recognition.onerror = () => {
+        statusText.textContent = "Voice recognition failed.";
+        setTimeout(() => (statusText.textContent = ""), 2000);
+      };
+
+      recognition.onend = () => {
+        if (statusText.textContent === "Listening...") statusText.textContent = "";
+      };
+    });
+
+    function newChat() {
+      if (currentChat.length) {
+        const title = prompt("Enter title for chat history:", "Chat " + (chatTitles.length + 1));
+        if (title) {
+          const div = document.createElement("div");
+          div.textContent = title;
+          div.onclick = () => loadChat(title);
+          chatHistory.appendChild(div);
+          chatTitles.push({ title, chat: [...currentChat] });
+        }
+      }
+      chatWindow.innerHTML = "";
+      currentChat = [];
+    }
+
+    function loadChat(title) {
+      const found = chatTitles.find(c => c.title === title);
+      if (!found) return;
+      chatWindow.innerHTML = "";
+      currentChat = [...found.chat];
+      currentChat.forEach(msg => addMessage(
+        msg.sender === 'bot' ? "Salman GPT: " + msg.text : msg.text,
+        msg.sender
+      ));
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function toggleSidebar() {
+      sidebar.classList.toggle("hide");
+    }
+  </script>
+</body>
+</html>
