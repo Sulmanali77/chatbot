@@ -7,7 +7,7 @@ import threading
 import webbrowser
 
 # === API Setup ===
-API_KEY = "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"
+API_KEY = "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"
 recognizer = sr.Recognizer()
 
 # === Global History ===
