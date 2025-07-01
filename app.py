@@ -3,7 +3,7 @@ import requests
 
 app = Flask(__name__)
 
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 
 @app.route("/")
 def index():
